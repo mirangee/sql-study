@@ -195,7 +195,12 @@ WHERE rn BETWEEN 1 AND 10;
 --EMPLOYEES 와 DEPARTMENTS 테이블에서 JOB_ID가 SA_MAN 사원의 정보의 LAST_NAME, JOB_ID, 
 DEPARTMENT_ID,DEPARTMENT_NAME을 출력하세요.
 */
-
+SELECT
+    last_name, job_id, department_id,
+    (SELECT department_name FROM departments d
+    WHERE d.department_id = e.department_id)
+FROM employees e
+WHERE job_id = 'SA_MAN';
 
 /*
 문제 14
@@ -203,6 +208,21 @@ DEPARTMENT_ID,DEPARTMENT_NAME을 출력하세요.
 -- 인원수 기준 내림차순 정렬하세요.
 -- 사람이 없는 부서는 출력하지 않습니다.
 */
+SELECT d.department_id, d.department_name, d.manager_id,
+    (SELECT COUNT(*) FROM employees e
+        WHERE e.department_id = d.department_id) AS 인원수
+FROM departments d
+WHERE EXISTS(SELECT d.department_id FROM employees)
+ORDER BY 인원수 DESC;
+
+SELECT *
+FROM
+    (SELECT d.department_id, d.department_name, d.manager_id,
+        (SELECT COUNT(*) FROM employees e
+            WHERE e.department_id = d.department_id) MEMBER_NUMBERS
+    FROM departments d
+    ORDER BY MEMBER_NUMBERS DESC)
+WHERE MEMBER_NUMBERS <> 0;
 
 
 /*
@@ -210,7 +230,14 @@ DEPARTMENT_ID,DEPARTMENT_NAME을 출력하세요.
 --부서에 대한 정보 전부와, 주소, 우편번호, 부서별 평균 연봉을 구해서 출력하세요.
 --부서별 평균이 없으면 0으로 출력하세요.
 */
-    
+SELECT d.*, loc.street_address, loc.postal_code, loc.city,
+    (SELECT NVL(AVG(salary),0) FROM employees e
+        WHERE e.department_id = d.department_id
+        AND E.salary is not null) AS AVG_SALARY
+FROM departments d
+JOIN locations loc
+ON d.location_id = loc.location_id
+ORDER BY AVG_SALARY DESC;
 
 
 /*
@@ -218,5 +245,15 @@ DEPARTMENT_ID,DEPARTMENT_NAME을 출력하세요.
 -문제 15 결과에 대해 DEPARTMENT_ID기준으로 내림차순 정렬해서 
 ROWNUM을 붙여 1-10 데이터 까지만 출력하세요.
 */
-
+SELECT *
+FROM (SELECT ROWNUM AS RN, TBL.*
+    FROM(SELECT d.*, loc.street_address, loc.postal_code, loc.city,
+                (SELECT NVL(AVG(salary),0) FROM employees e
+                WHERE e.department_id = d.department_id
+                AND E.salary is not null) AS AVG_SALARY
+        FROM departments d
+        JOIN locations loc
+        ON d.location_id = loc.location_id
+        ORDER BY d.department_id DESC)TBL)
+WHERE RN BETWEEN 1 AND 10;
 
