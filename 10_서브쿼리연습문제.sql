@@ -198,7 +198,7 @@ DEPARTMENT_ID,DEPARTMENT_NAME을 출력하세요.
 SELECT
     last_name, job_id, department_id,
     (SELECT department_name FROM departments d
-    WHERE d.department_id = e.department_id)
+    WHERE d.department_id = e.department_id)department_name
 FROM employees e
 WHERE job_id = 'SA_MAN';
 
@@ -208,13 +208,9 @@ WHERE job_id = 'SA_MAN';
 -- 인원수 기준 내림차순 정렬하세요.
 -- 사람이 없는 부서는 출력하지 않습니다.
 */
-SELECT d.department_id, d.department_name, d.manager_id,
-    (SELECT COUNT(*) FROM employees e
-        WHERE e.department_id = d.department_id) AS 인원수
-FROM departments d
-WHERE EXISTS(SELECT d.department_id FROM employees)
-ORDER BY 인원수 DESC;
 
+
+-- 사람이 없는 부서는 출력하지 않기 위해 다중 서브쿼리 활용
 SELECT *
 FROM
     (SELECT d.department_id, d.department_name, d.manager_id,
@@ -224,16 +220,30 @@ FROM
     ORDER BY MEMBER_NUMBERS DESC)
 WHERE MEMBER_NUMBERS <> 0;
 
+-- 사람이 없는 부서는 출력하지 않기 위해 EXISTS 활용
+SELECT d.department_id, d.department_name, d.manager_id,
+        (SELECT COUNT(*) FROM employees e
+            WHERE e.department_id = d.department_id) MEMBER_NUMBERS
+FROM departments d
+WHERE EXISTS (
+                SELECT 1 FROM employees e
+                WHERE e.department_id = d.department_id
+            )
+ORDER BY MEMBER_NUMBERS DESC;
+
 
 /*
 문제 15
 --부서에 대한 정보 전부와, 주소, 우편번호, 부서별 평균 연봉을 구해서 출력하세요.
 --부서별 평균이 없으면 0으로 출력하세요.
 */
-SELECT d.*, loc.street_address, loc.postal_code, loc.city,
-    (SELECT NVL(AVG(salary),0) FROM employees e
+SELECT d.*, loc.street_address, loc.postal_code,
+    (
+        SELECT
+            NVL(TRUNC(AVG(salary),0),0)
+        FROM employees e
         WHERE e.department_id = d.department_id
-        AND E.salary is not null) AS AVG_SALARY
+    ) AS AVG_SALARY
 FROM departments d
 JOIN locations loc
 ON d.location_id = loc.location_id
@@ -249,8 +259,7 @@ SELECT *
 FROM (SELECT ROWNUM AS RN, TBL.*
     FROM(SELECT d.*, loc.street_address, loc.postal_code, loc.city,
                 (SELECT NVL(AVG(salary),0) FROM employees e
-                WHERE e.department_id = d.department_id
-                AND E.salary is not null) AS AVG_SALARY
+                WHERE e.department_id = d.department_id) AS AVG_SALARY
         FROM departments d
         JOIN locations loc
         ON d.location_id = loc.location_id
